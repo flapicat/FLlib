@@ -5,3 +5,5 @@
 #include "Log.h"
 #include "TimeStep.h"
 #include "Window.h"
+
+#include "Renderer.h"
