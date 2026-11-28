@@ -13,7 +13,7 @@ namespace FLlib {
 		std::string Title;
 		bool VSync = true;
 
-		WindowProp(uint32_t width = 1600, uint32_t height = 900, const std::string& title = "FL_Engine")
+		WindowProp(uint32_t width = 1600, uint32_t height = 900, const std::string& title = "FLlib")
 			:Width(width), Height(height), Title(title)
 		{
 		}
@@ -38,12 +38,27 @@ namespace FLlib {
 		void SetWindowPosition(int x, int y);
 		void CenterWindow();
 
+		void SetCursorLocked(bool locked);
+		bool IsCursorLocked() const { return m_CursorLocked; }
+
 		static std::shared_ptr<Window> Create(const WindowProp& prop);
 	private:
 		void Init(const WindowProp& prop);
+		void SetCallbacks();
+
+		static void CloseCallback(GLFWwindow* window);
+		static void WindowSizeCallback(GLFWwindow* window, int width, int height);
+		static void FramebufferSizeCallback(GLFWwindow* window, int width, int height);
+		static void FocusCallback(GLFWwindow* window, int focused);
+		static void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
+		static void CharCallback(GLFWwindow* window, unsigned int codepoint);
+		static void MouseButtonCallback(GLFWwindow* window, int button, int action, int mods);
+		static void CursorPosCallback(GLFWwindow* window, double x, double y);
+		static void ScrollCallback(GLFWwindow* window, double xOffset, double yOffset);
 	private:
 		GLFWwindow* m_Window = nullptr;
 		WindowProp m_Prop;
+		bool m_CursorLocked = false;
 	};
 	
 

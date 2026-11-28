@@ -4,6 +4,8 @@
 
 #include "Log.h"
 #include "Globals.h"
+#include "Events.h"
+#include "Input.h"
 
 namespace FLlib {
 	static void GLFWErrorCallback(int error, const char* description)
@@ -73,12 +75,92 @@ namespace FLlib {
 		LOG_INFO("  Renderer: {0}", (const char*)glGetString(GL_RENDERER));
 		LOG_INFO("  Version: {0}", (const char*)glGetString(GL_VERSION));
 
+		int fbWidth = 0, fbHeight = 0;
+		glfwGetFramebufferSize(m_Window, &fbWidth, &fbHeight);
+		glViewport(0, 0, fbWidth, fbHeight);
+
+		SetCallbacks();
 		CenterWindow();
+	}
+
+	void Window::SetCallbacks()
+	{
+		glfwSetWindowCloseCallback(m_Window, CloseCallback);
+		glfwSetWindowSizeCallback(m_Window, WindowSizeCallback);
+		glfwSetFramebufferSizeCallback(m_Window, FramebufferSizeCallback);
+		glfwSetWindowFocusCallback(m_Window, FocusCallback);
+		glfwSetKeyCallback(m_Window, KeyCallback);
+		glfwSetCharCallback(m_Window, CharCallback);
+		glfwSetMouseButtonCallback(m_Window, MouseButtonCallback);
+		glfwSetCursorPosCallback(m_Window, CursorPosCallback);
+		glfwSetScrollCallback(m_Window, ScrollCallback);
+	}
+
+	void Window::CloseCallback(GLFWwindow*)
+	{
+		Globals::AppShouldRun = false;
+		Events::Push(WindowCloseEvent{});
+	}
+
+	void Window::WindowSizeCallback(GLFWwindow* window, int width, int height)
+	{
+		auto self = (Window*)glfwGetWindowUserPointer(window);
+		self->m_Prop.Width = (uint32_t)width;
+		self->m_Prop.Height = (uint32_t)height;
+	}
+
+	void Window::FramebufferSizeCallback(GLFWwindow*, int width, int height)
+	{
+		glViewport(0, 0, width, height);
+		if (width > 0 && height > 0)
+			Globals::Camera.SetAspectRatio((float)width / (float)height);
+		Events::Push(WindowResizeEvent{ (uint32_t)width, (uint32_t)height });
+	}
+
+	void Window::FocusCallback(GLFWwindow*, int focused)
+	{
+		Events::Push(WindowFocusEvent{ focused == GLFW_TRUE });
+	}
+
+	void Window::KeyCallback(GLFWwindow*, int key, int, int action, int mods)
+	{
+		Input::OnKey(key, action);
+
+		KeyAction keyAction = action == GLFW_PRESS ? KeyAction::Pressed
+			: action == GLFW_RELEASE ? KeyAction::Released
+			: KeyAction::Repeat;
+		Events::Push(KeyEvent{ (Key)key, keyAction, (uint32_t)mods });
+	}
+
+	void Window::CharCallback(GLFWwindow*, unsigned int codepoint)
+	{
+		Events::Push(CharEvent{ codepoint });
+	}
+
+	void Window::MouseButtonCallback(GLFWwindow*, int button, int action, int mods)
+	{
+		Input::OnMouseButton(button, action);
+		Events::Push(MouseButtonEvent{ (uint32_t)button, action == GLFW_PRESS, (uint32_t)mods });
+	}
+
+	void Window::CursorPosCallback(GLFWwindow*, double x, double y)
+	{
+		Input::OnMouseMove((float)x, (float)y);
+		Events::Push(MouseMoveEvent{ (float)x, (float)y });
+	}
+
+	void Window::ScrollCallback(GLFWwindow*, double xOffset, double yOffset)
+	{
+		Input::OnScroll((float)xOffset, (float)yOffset);
+		Events::Push(MouseScrollEvent{ (float)xOffset, (float)yOffset });
 	}
 
 	void Window::OnUpdate()
 	{
 		glfwSwapBuffers(m_Window);
+
+		Input::BeginFrame();
+		Events::Clear();
 		glfwPollEvents();
 
 		auto color = Globals::clearColor;
@@ -107,6 +189,19 @@ namespace FLlib {
 		int xpos = (mode->width - (int)m_Prop.Width) / 2;
 		int ypos = (mode->height - (int)m_Prop.Height) / 2;
 		glfwSetWindowPos(m_Window, xpos, ypos);
+	}
+
+	void Window::SetCursorLocked(bool locked)
+	{
+		if (locked == m_CursorLocked)
+			return;
+
+		m_CursorLocked = locked;
+		glfwSetInputMode(m_Window, GLFW_CURSOR, locked ? GLFW_CURSOR_DISABLED : GLFW_CURSOR_NORMAL);
+		if (glfwRawMouseMotionSupported())
+			glfwSetInputMode(m_Window, GLFW_RAW_MOUSE_MOTION, locked ? GLFW_TRUE : GLFW_FALSE);
+
+		Input::ResetMouseTracking();
 	}
 
 	std::shared_ptr<Window> Window::Create(const WindowProp& prop)

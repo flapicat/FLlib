@@ -2,6 +2,8 @@
 
 #include <glm/gtc/matrix_transform.hpp>
 
+#include "PerspectiveCameraController.h"
+
 namespace FLlib
 {
 	static constexpr glm::vec3 WorldUp = { 0.0f, 1.0f, 0.0f };
@@ -9,6 +11,7 @@ namespace FLlib
 	PerspectiveCamera::PerspectiveCamera(float fov, float aspectRatio, float nearClip, float farClip)
 		:m_Fov(fov), m_AspectRatio(aspectRatio), m_NearClip(nearClip), m_FarClip(farClip)
 	{
+		Controller = CameraController;
 		RecalculateProjection();
 		RecalculateView();
 	}
@@ -50,7 +53,7 @@ namespace FLlib
 	void PerspectiveCamera::SetRotation(float pitch, float yaw)
 	{
 		m_Pitch = glm::clamp(pitch, -89.0f, 89.0f);
-		m_Yaw = yaw;\
+		m_Yaw = yaw;
 		RecalculateView();
 	}
 

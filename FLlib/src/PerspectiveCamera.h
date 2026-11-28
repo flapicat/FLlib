@@ -1,6 +1,8 @@
 #pragma once
 #include <glm/glm.hpp>
 
+#include <functional>
+
 namespace FLlib
 {
 	class PerspectiveCamera
@@ -29,6 +31,9 @@ namespace FLlib
 		const glm::mat4& GetProjection() const { return m_Projection; }
 		const glm::mat4& GetView() const { return m_View; }
 		const glm::mat4& GetViewProjection() const { return m_ViewProjection; }
+		void OnUpdate() { if (Controller) Controller(*this); }
+	public:
+		std::function<void(PerspectiveCamera&)> Controller;
 	private:
 		void RecalculateProjection();
 		void RecalculateView();
